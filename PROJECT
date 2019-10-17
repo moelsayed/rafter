@@ -1,0 +1,22 @@
+version: "2"
+domain: kyma-project.io
+repo: github.com/kyma-project/rafter
+resources:
+- group: rafter
+  version: v1beta1
+  kind: ClusterAsset
+- group: rafter
+  version: v1beta1
+  kind: ClusterBucket
+- group: rafter
+  version: v1beta1
+  kind: Asset
+- group: rafter
+  version: v1beta1
+  kind: Bucket
+- group: rafter
+  version: v1beta1
+  kind: ClusterAssetGroup
+- group: rafter
+  version: v1beta1
+  kind: AssetGroup
