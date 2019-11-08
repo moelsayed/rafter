@@ -39,6 +39,10 @@ spec:
         spec:
           description: ClusterAssetGroupSpec defines the desired state of ClusterAssetGroup
           properties:
+            bucketRef:
+              properties:
+                name:
+                  type: string
             description:
               type: string
             displayName:
