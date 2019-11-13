@@ -43,6 +43,9 @@ spec:
               properties:
                 name:
                   type: string
+              required:
+              - name
+              type: object
             description:
               type: string
             displayName:
@@ -74,6 +77,7 @@ spec:
                 - type
                 - url
                 type: object
+              minItems: 1
               type: array
           required:
           - sources
@@ -99,6 +103,7 @@ spec:
           - phase
           type: object
       type: object
+  version: v1beta1
   versions:
   - name: v1beta1
     served: true

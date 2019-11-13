@@ -1,8 +1,24 @@
+ROOT :=  $(shell pwd)
+COVERAGE_OUTPUT_PATH := ${ROOT}/cover.out
+LICENSES_PATH := ${ROOT}/licenses
 
 # Image URL to use all building/pushing image targets
-APP_NAME ?= rafter-controller-manager
-IMG ?= $(APP_NAME):latest
-IMG-CI = $(DOCKER_PUSH_REPOSITORY)$(DOCKER_PUSH_DIRECTORY)/$(APP_NAME):$(DOCKER_TAG)
+UPLOADER_IMG_NAME ?= rafter-upload-service
+MANAGER_IMG_NAME ?= rafter-controller-manager
+FRONT_MATTER_IMG_NAME ?= rafter-front-matter-service
+ASYNCAPI_IMG_NAME ?= rafter-asyncapi-service
+
+IMG-CI-NAME-PREFIX := $(DOCKER_PUSH_REPOSITORY)$(DOCKER_PUSH_DIRECTORY)
+
+UPLOADER-CI-IMG-NAME := $(IMG-CI-NAME-PREFIX)/$(UPLOADER_IMG_NAME):$(DOCKER_TAG)
+UPLOADER-CI-IMG-NAME-LATEST := $(IMG-CI-NAME-PREFIX)/$(UPLOADER_IMG_NAME):latest
+MANAGER-CI-IMG-NAME :=  $(IMG-CI-NAME-PREFIX)/$(MANAGER_IMG_NAME):$(DOCKER_TAG)
+MANAGER-CI-IMG-NAME-LATEST :=  $(IMG-CI-NAME-PREFIX)/$(MANAGER_IMG_NAME):latest
+FRONTMATTER-CI-IMG-NAME := $(IMG-CI-NAME-PREFIX)/$(FRONT_MATTER_IMG_NAME):$(DOCKER_TAG)
+FRONTMATTER-CI-IMG-NAME-LATEST := $(IMG-CI-NAME-PREFIX)/$(FRONT_MATTER_IMG_NAME):latest
+ASYNCAPI-CI-IMG-NAME :=  $(IMG-CI-NAME-PREFIX)/$(ASYNCAPI_IMG_NAME):$(DOCKER_TAG)
+ASYNCAPI-CI-IMG-NAME-LATEST :=  $(IMG-CI-NAME-PREFIX)/$(ASYNCAPI_IMG_NAME):latest
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -13,63 +29,102 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: test manager
+all: docker-build
+
+build-uploader:
+	docker build -t $(UPLOADER_IMG_NAME) -f ${ROOT}/deploy/uploader/Dockerfile ${ROOT}
+
+push-uploader:
+	docker tag $(UPLOADER_IMG_NAME) $(UPLOADER-CI-IMG-NAME)
+	docker push $(UPLOADER-CI-IMG-NAME)
+
+push-uploader-latest:
+	docker tag $(UPLOADER_IMG_NAME) $(UPLOADER-CI-IMG-NAME-LATEST)
+	docker push $(UPLOADER-CI-IMG-NAME-LATEST)
+
+build-manager:
+	docker build -t $(MANAGER_IMG_NAME) -f ${ROOT}/deploy/manager/Dockerfile ${ROOT}
+
+push-manager:
+	docker tag $(MANAGER_IMG_NAME) $(MANAGER-CI-IMG-NAME)
+	docker push $(MANAGER-CI-IMG-NAME)
+
+push-manager-latest:
+	docker tag $(MANAGER_IMG_NAME) $(MANAGER-CI-IMG-NAME-LATEST)
+	docker push $(MANAGER-CI-IMG-NAME-LATEST)
+
+build-frontmatter:
+	docker build -t $(FRONT_MATTER_IMG_NAME) -f ${ROOT}/deploy/extension/frontmatter/Dockerfile ${ROOT}
+
+push-frontmatter:
+	docker tag $(FRONT_MATTER_IMG_NAME) $(FRONTMATTER-CI-IMG-NAME)
+	docker push $(FRONTMATTER-CI-IMG-NAME)
+
+push-frontmatter-latest:
+	docker tag $(FRONT_MATTER_IMG_NAME) $(FRONTMATTER-CI-IMG-NAME-LATEST)
+	docker push $(FRONTMATTER-CI-IMG-NAME-LATEST)
+
+build-asyncapi:
+	docker build -t $(ASYNCAPI_IMG_NAME) -f ${ROOT}/deploy/extension/asyncapi/Dockerfile ${ROOT}
+
+push-asyncapi:
+	docker tag $(ASYNCAPI_IMG_NAME) $(ASYNCAPI-CI-IMG-NAME)
+	docker push $(ASYNCAPI-CI-IMG-NAME)
+
+push-asyncapi-latest:
+	docker tag $(ASYNCAPI_IMG_NAME) $(ASYNCAPI-CI-IMG-NAME-LATEST)
+	docker push $(ASYNCAPI-CI-IMG-NAME-LATEST)
+
+clean:
+	rm -f ${COVERAGE_OUTPUT_PATH}
+	rm -rf ${LICENSES_PATH}
 
 pull-licenses:
 ifdef LICENSE_PULLER_PATH
 	bash $(LICENSE_PULLER_PATH)
 else
-	mkdir -p licenses
+	mkdir -p ${LICENSES_PATH}
 endif
 
+fmt:
+	find ${ROOT} -type f -name "*.go" \
+	| egrep -v '_*/automock|_*/testdata|_*export_test.go' \
+	| xargs -L1 go fmt
+
+vet:
+	@go list ${ROOT}/... \
+	| grep -v "automock" \
+	| xargs -L1 go vet
+
 # Run tests
-test: generate fmt vet manifests
-	go test -coverprofile=cover.out ./...
-	@echo "Total test coverage: $$(go tool cover -func=cover.out | grep total | awk '{print $$3}')"
-	@rm cover.out
-
-# Build manager binary
-manager: generate fmt vet
-	go build -o bin/manager cmd/manager/main.go
-
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
-	go run ./cmd/manager/main.go
-
-# Install CRDs into a cluster
-install: manifests
-	kustomize build config/crd | kubectl apply -f -
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
+test: clean manifests vet fmt
+	go test -short -coverprofile=${COVERAGE_OUTPUT_PATH} ${ROOT}/...
+	@go tool cover -func=${COVERAGE_OUTPUT_PATH} \
+		| grep total \
+		| awk '{print "Total test coverage: " $$3}'
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="${ROOT}/..." \
+		object:headerFile=${ROOT}/hack/boilerplate.go.txt \
+		output:crd:artifacts:config=${ROOT}/config/crd/bases \
+		output:rbac:artifacts:config=${ROOT}/config/rbac \
+		output:webhook:artifacts:config=${ROOT}/config/webhook
 
-# Run go fmt against code
-fmt:
-	go fmt ./...
-
-# Run go vet against code
-vet:
-#	go vet ./...
-	@echo "VET DISABLED!!!!!!!!!!"
-
-# Generate code
-generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
-
-# Build the docker image
-docker-build: test pull-licenses
-	docker build . -t ${IMG}
+docker-build: \
+	test \
+	pull-licenses \
+	build-uploader \
+	build-frontmatter \
+	build-asyncapi \
+	build-manager
 
 # Push the docker image
-docker-push:
-	docker tag $(IMG) $(IMG-CI)
-	docker push $(IMG-CI)
+docker-push: \
+	push-uploader \
+	push-frontmatter \
+	push-asyncapi \
+	push-manager
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -82,5 +137,39 @@ CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 ci-pr: docker-build docker-push
+
+ci-release-push-latest: \
+		   push-uploader-latest \
+		   push-manager-latest \
+		   push-frontmatter-latest \
+		   push-asyncapi-latest
+
 ci-master: docker-build docker-push
-ci-release: docker-build docker-push
+
+ci-release: docker-build docker-push ci-release-push-latest
+
+.PHONY: all \
+		build-uploader \
+		push-uploader \
+		build-manager \
+		push-manager \
+		build-frontmatter \
+		push-frontmatter \
+		build-asyncapi \
+		push-asyncapi \
+		clean \
+		pull-licenses \
+		vet \
+		fmt \
+		test \
+		manifests \
+		docker-build \
+		docker-push \
+		controller-gen \
+		ci-pr \
+		ci-master \
+		ci-release \
+		push-uploader-latest \
+		push-manager-latest \
+		push-frontmatter-latest \
+		push-asyncapi-latest
