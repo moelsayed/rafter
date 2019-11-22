@@ -97,6 +97,10 @@ vet:
 	| xargs -L1 go vet
 
 # Run tests
+# Default is 20s - available since controller-runtime 0.1.5
+test: export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT = 2m
+# Default is 20s - available since controller-runtime 0.1.5
+test: export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT = 2m
 test: clean manifests vet fmt
 	go test -short -coverprofile=${COVERAGE_OUTPUT_PATH} ${ROOT}/...
 	@go tool cover -func=${COVERAGE_OUTPUT_PATH} \
@@ -148,6 +152,21 @@ ci-master: docker-build docker-push
 
 ci-release: docker-build docker-push ci-release-push-latest
 
+start-docker: 
+	${ROOT}/hack/ci/start_docker.sh
+
+integration-test: \
+	start-docker \
+	build-uploader \
+	build-manager \
+	build-frontmatter \
+	build-asyncapi 
+	${ROOT}/hack/ci/run-integration-tests.sh \
+		${UPLOADER_IMG_NAME} \
+		${MANAGER_IMG_NAME} \
+		${FRONT_MATTER_IMG_NAME} \
+		${ASYNCAPI_IMG_NAME}
+
 .PHONY: all \
 		build-uploader \
 		push-uploader \
@@ -172,4 +191,5 @@ ci-release: docker-build docker-push ci-release-push-latest
 		push-uploader-latest \
 		push-manager-latest \
 		push-frontmatter-latest \
-		push-asyncapi-latest
+		push-asyncapi-latest \
+		start-docker
