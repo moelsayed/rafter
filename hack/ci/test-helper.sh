@@ -28,6 +28,23 @@ source "${LIB_DIR}/kubernetes.sh" || {
     exit 1
 }
 
+source "${LIB_DIR}/junit.sh" || {	
+    echo 'Cannot load JUnit utilities.'	
+    exit 1	
+}
+
+testHelper::install_go_junit_report(){
+    log::info '- Installing go-junit-report...'
+    if ! [ -x "$(command -v go-junit-report)" ]; then
+        export GO111MODULE="off"
+        GO111MODULE=off go get -u github.com/jstemmer/go-junit-report 
+        export GO111MODULE="on"
+        log::success "- go-junit-reports installed."
+        return 0
+    fi
+    log::info "- go-junit-reports already installed!"
+}
+
 # Arguments:
 #   $1 - minio access key that will be used during rafter installation
 #   $2 - minio secret key that will be used during the rafter installation
@@ -96,19 +113,10 @@ testHelper::add_repos_and_update() {
 
 # Arguments:
 #   $1 - name of the kind cluster
-#   $2 - tmp directory with binaries used during test
-testHelper::cleanup() {
-    log::info "- Cleaning up cluster ${1}..."
-    kind::delete_cluster "${1}"
-    log::info "- Deleting directory with temporary binaries used in tests..."
-    rm -rf "${2}"
-}
-
-# Arguments:
-#   $1 - name of the kind cluster
 #   $2 - minio access key that will be used during rafter installation
 #   $3 - minio secret key that will be used during the rafter installation
 #   $4 - the addres of the ingress that exposes upload and minio endpoints
+#   $5 - artifacts dir used to store JUnit reports
 testHelper::start_integration_tests() {
     # required by integration suite
     export APP_KUBECONFIG_PATH="$(kind get kubeconfig-path --name=${1})"
@@ -120,8 +128,22 @@ testHelper::start_integration_tests() {
     export APP_TEST_MINIO_ACCESSKEY="${2}"
     export APP_TEST_MINIO_SECRETKEY="${3}"
     export APP_TEST_UPLOAD_SERVICE_URL="${4}/v1/upload"
+
+    local LOG_FILE=integration_test_data.log
+    local test_failed="false"
+    local -r SUITE_NAME="Rafter_Integration_Go_Test"
     log::info "Starting integration tests..."
-    go test ${CURRENT_DIR}/../../tests/asset-store/main_test.go -count 1
+
+    
+    go test "${CURRENT_DIR}"/../../tests/asset-store/main_test.go -count 1 -v 2>&1 | tee "${LOG_FILE}" || test_failed="true"
+    < "${LOG_FILE}" go-junit-report > "${5}/junit_${SUITE_NAME}_suite.xml"
+    rm -rf "${LOG_FILE}"
+
+    if [[ ${test_failed} = "true" ]]; then
+        log::error "Job finished with error"
+        return 1
+    fi
+    log::success "Job finished with success"
 }
 
 # Arguments:
