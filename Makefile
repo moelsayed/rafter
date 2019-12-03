@@ -77,12 +77,6 @@ push-asyncapi-latest:
 clean:
 	rm -rf ${LICENSES_PATH}
 
-minio-gateway-test:
-	exit 0;
-
-minio-gateway-migration-test:
-	exit 0;
-
 pull-licenses:
 ifdef LICENSE_PULLER_PATH
 	bash $(LICENSE_PULLER_PATH)
@@ -101,8 +95,11 @@ vet:
 	| xargs -L1 go vet
 
 unit-tests: 
-	${ROOT}/hack/ci/unit_tests.sh \
+	${ROOT}/hack/ci/run-unit-tests.sh \
 		${ROOT}
+
+start-docker: 
+	${ROOT}/hack/ci/start-docker.sh
 
 # Run tests
 test: clean manifests vet fmt unit-tests
@@ -152,20 +149,34 @@ ci-master: docker-build docker-push
 
 ci-release: docker-build docker-push ci-release-push-latest
 
-start-docker: 
-	${ROOT}/hack/ci/start_docker.sh
-
 integration-test: \
 	start-docker \
 	build-uploader \
 	build-manager \
 	build-frontmatter \
-	build-asyncapi 
-	${ROOT}/hack/ci/run-integration-tests.sh \
-		${UPLOADER_IMG_NAME} \
-		${MANAGER_IMG_NAME} \
-		${FRONT_MATTER_IMG_NAME} \
-		${ASYNCAPI_IMG_NAME}
+	build-asyncapi
+	${ROOT}/hack/ci/run-integration-test.sh \
+		${ROOT}
+
+minio-gateway-test: \
+	start-docker \
+	build-uploader \
+	build-manager \
+	build-frontmatter \
+	build-asyncapi
+	${ROOT}/hack/ci/run-minio-gateway-test.sh \
+		${ROOT} \
+		"basic"
+
+minio-gateway-migration-test: \
+	start-docker \
+	build-uploader \
+	build-manager \
+	build-frontmatter \
+	build-asyncapi
+	${ROOT}/hack/ci/run-minio-gateway-test.sh \
+		${ROOT} \
+		"migration"
 
 .PHONY: all \
 		build-uploader \
@@ -180,6 +191,8 @@ integration-test: \
 		pull-licenses \
 		vet \
 		fmt \
+		start-docker \
+		unit-tests \
 		test \
 		manifests \
 		docker-build \
@@ -188,12 +201,10 @@ integration-test: \
 		ci-pr \
 		ci-master \
 		ci-release \
+		integration-test \
+		minio-gateway-test \
+		minio-gateway-migration-test \
 		push-uploader-latest \
 		push-manager-latest \
 		push-frontmatter-latest \
-		push-asyncapi-latest \
-		start-docker \
-		unit-tests \
-		minio-gateway-test \
-		minio-gateway-migration-test
-
+		push-asyncapi-latest
