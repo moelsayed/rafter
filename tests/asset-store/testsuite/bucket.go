@@ -1,11 +1,13 @@
 package testsuite
 
 import (
+	"context"
 	"time"
 
 	"github.com/kyma-project/rafter/pkg/apis/rafter/v1beta1"
 	"github.com/kyma-project/rafter/tests/asset-store/pkg/resource"
-	"github.com/kyma-project/rafter/tests/asset-store/pkg/waiter"
+	watchtools "k8s.io/client-go/tools/watch"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +35,7 @@ func newBucket(dynamicCli dynamic.Interface, name, namespace string, waitTimeout
 	}
 }
 
-func (b *bucket) Create() error {
+func (b *bucket) Create(callbacks ...func(...interface{})) (string, error) {
 	bucket := &v1beta1.Bucket{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Bucket",
@@ -49,32 +51,21 @@ func (b *bucket) Create() error {
 			},
 		},
 	}
-
-	err := b.resCli.Create(bucket)
+	resourceVersion, err := b.resCli.Create(bucket, callbacks...)
 	if err != nil {
-		return errors.Wrapf(err, "while creating Bucket %s in namespace %s", b.name, b.namespace)
+		return resourceVersion, errors.Wrapf(err, "while creating Bucket %s in namespace %s", b.name, b.namespace)
 	}
-
-	return err
+	return resourceVersion, err
 }
 
-func (b *bucket) WaitForStatusReady() error {
-	err := waiter.WaitAtMost(func() (bool, error) {
-		res, err := b.Get(b.name)
-		if err != nil {
-			return false, err
-		}
-
-		if res.Status.Phase != v1beta1.BucketReady {
-			return false, nil
-		}
-
-		return true, nil
-	}, b.waitTimeout)
+func (b *bucket) WaitForStatusReady(initialResourceVersion string, callbacks ...func(...interface{})) error {
+	ctx, cancel := context.WithTimeout(context.Background(), b.waitTimeout)
+	defer cancel()
+	condition := isPhaseReady(b.name, callbacks...)
+	_, err := watchtools.Until(ctx, initialResourceVersion, b.resCli.ResCli, condition)
 	if err != nil {
-		return errors.Wrapf(err, "while waiting for ready Bucket resources")
+		return err
 	}
-
 	return nil
 }
 
@@ -93,11 +84,10 @@ func (b *bucket) Get(name string) (*v1beta1.Bucket, error) {
 	return &res, nil
 }
 
-func (b *bucket) Delete() error {
-	err := b.resCli.Delete(b.name)
+func (b *bucket) Delete(callbacks ...func(...interface{})) error {
+	err := b.resCli.Delete(b.name, b.waitTimeout, callbacks...)
 	if err != nil {
 		return errors.Wrapf(err, "while deleting Bucket %s in namespace %s", b.name, b.namespace)
 	}
-
 	return nil
 }
