@@ -4,18 +4,22 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/kyma-project/rafter/tests/pkg/upload"
 	"github.com/minio/minio-go"
-
-	"github.com/kyma-project/rafter/tests/pkg/namespace"
 	"github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/dynamic"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+
+	"github.com/kyma-project/rafter/pkg/apis/rafter/v1beta1"
+	"github.com/kyma-project/rafter/tests/pkg/configmap"
+	"github.com/kyma-project/rafter/tests/pkg/file"
+	"github.com/kyma-project/rafter/tests/pkg/namespace"
+	"github.com/kyma-project/rafter/tests/pkg/upload"
 )
 
 type Config struct {
@@ -30,6 +34,7 @@ type Config struct {
 
 type TestSuite struct {
 	namespace     *namespace.Namespace
+	configMap     *configmap.Configmap
 	bucket        *bucket
 	clusterBucket *clusterBucket
 	fileUpload    *testData
@@ -71,6 +76,7 @@ func New(restConfig *rest.Config, cfg Config, t *testing.T, g *gomega.GomegaWith
 	minioCli.SetCustomTransport(transCfg)
 
 	ns := namespace.New(coreCli, cfg.Namespace)
+	cm := configmap.New(coreCli, cfg.Namespace, cfg.WaitTimeout)
 
 	b := newBucket(dynamicCli, cfg.BucketName, cfg.Namespace, cfg.WaitTimeout, t.Logf)
 	cb := newClusterBucket(dynamicCli, cfg.ClusterBucketName, cfg.WaitTimeout, t.Logf)
@@ -79,6 +85,7 @@ func New(restConfig *rest.Config, cfg Config, t *testing.T, g *gomega.GomegaWith
 
 	return &TestSuite{
 		namespace:     ns,
+		configMap:     cm,
 		bucket:        b,
 		clusterBucket: cb,
 		fileUpload:    newTestData(cfg.UploadServiceUrl),
@@ -101,6 +108,10 @@ func (t *TestSuite) Run() {
 
 	t.t.Log("Deleting old cluster assets...")
 	err = t.clusterAsset.DeleteLeftovers(t.testId)
+	failOnError(t.g, err)
+
+	t.t.Log("Deleting old configmaps...")
+	err = t.configMap.DeleteAll(t.t.Log)
 	failOnError(t.g, err)
 
 	t.t.Log("Deleting old cluster bucket...")
@@ -142,8 +153,13 @@ func (t *TestSuite) Run() {
 	t.uploadResult = uploadResult
 	t.systemBucketName = uploadResult.UploadedFiles[0].Bucket
 
+	t.t.Log("Apply test configmap...")
+	configMapData, err := t.createConfigmapAssetData()
+	failOnError(t.g, err)
+
 	t.t.Log("Preparing metadata...")
 	t.assetDetails = convertToAssetResourceDetails(uploadResult, t.cfg.CommonAssetPrefix)
+	t.assetDetails = append(t.assetDetails, configMapData)
 
 	t.t.Log("Creating assets...")
 	resourceVersion, err = t.asset.CreateMany(t.assetDetails, t.testId, t.t.Log)
@@ -182,7 +198,10 @@ func (t *TestSuite) Run() {
 func (t *TestSuite) Cleanup() {
 	t.t.Log("Cleaning up...")
 
-	err := t.clusterBucket.Delete(t.t.Log)
+	err := t.configMap.DeleteAll(t.t.Log)
+	failOnError(t.g, err)
+
+	err = t.clusterBucket.Delete(t.t.Log)
 	failOnError(t.g, err)
 
 	err = t.bucket.Delete(t.t.Log)
@@ -206,6 +225,31 @@ func (t *TestSuite) uploadTestFiles() (*upload.Response, error) {
 	}
 
 	return uploadResult, nil
+}
+
+func (t *TestSuite) createConfigmapAssetData() (assetData, error) {
+	configmapName := "configmap-test"
+	paths := []string{localPath("foo.json"), localPath("bar.png")}
+
+	fir, err := file.Open(paths[0])
+	if err != nil {
+		return assetData{}, errors.Wrapf(err, "during file reading from path: %s", paths[0])
+	}
+	defer fir.Close()
+
+	sec, err := file.Open(paths[1])
+	if err != nil {
+		return assetData{}, errors.Wrapf(err, "during file reading from path: %s", paths[1])
+	}
+	defer sec.Close()
+
+	t.configMap.Create(configmapName, []*os.File{fir, sec}, t.t.Log)
+
+	return assetData{
+		Name: fmt.Sprintf("%s-%s", configmapName, "asset"),
+		URL:  fmt.Sprintf("%s/%s", t.cfg.Namespace, configmapName),
+		Mode: v1beta1.AssetConfigMap,
+	}, nil
 }
 
 func (t *TestSuite) populateUploadedFiles(callbacks ...func(...interface{})) ([]uploadedFile, error) {
