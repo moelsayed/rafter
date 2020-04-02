@@ -49,7 +49,7 @@ var _ = Describe("Asset", func() {
 		}
 	})
 
-	It("should successfully create, update and delete AssetGroup", func() {
+	It("should successfully create, update and delete ClusterAssetGroup", func() {
 		By("creating the ClusterAssetGroup")
 		result, err := reconciler.Reconcile(request)
 		validateReconcilation(err, result)
@@ -70,8 +70,10 @@ var _ = Describe("Asset", func() {
 			if asset.Annotations["rafter.kyma-project.io/asset-short-name"] == "source-one" {
 				Expect(asset.Spec.Parameters).ToNot(BeNil())
 				Expect(asset.Spec.Parameters).To(Equal(&fixParameters))
+				Expect(asset.Spec.DisplayName).To(Equal("Source one"))
 			} else {
 				Expect(asset.Spec.Parameters).To(BeNil())
+				Expect(asset.Spec.DisplayName).To(Equal(""))
 			}
 		}
 
@@ -129,11 +131,12 @@ func newFixClusterAssetGroup() *v1beta1.ClusterAssetGroup {
 				DisplayName: "Test Topic",
 				Sources: []v1beta1.Source{
 					{
-						Name:       "source-one",
-						Type:       "openapi",
-						Mode:       v1beta1.AssetGroupSingle,
-						URL:        "https://dummy.url/single",
-						Parameters: &fixParameters,
+						Name:        "source-one",
+						Type:        "openapi",
+						Mode:        v1beta1.AssetGroupSingle,
+						URL:         "https://dummy.url/single",
+						Parameters:  &fixParameters,
+						DisplayName: "Source one",
 					},
 					{
 						Name:   "source-two",
