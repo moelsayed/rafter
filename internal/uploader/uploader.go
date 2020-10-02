@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -153,13 +154,17 @@ func (u *Uploader) uploadFile(ctx context.Context, fileUpload FileUpload) (*Uplo
 
 	fileName := file.Filename()
 	fileSize := file.Size()
-	objectName := fmt.Sprintf("%s/%s", fileUpload.Directory, fileName)
+
+	// normalize object name. More info: https://github.com/minio/minio/issues/5874
+	objectName := u.normalizeObjectName(fileUpload.Directory, fileName)
 
 	glog.Infof("Uploading `%s` into bucket `%s`...\n", objectName, fileUpload.Bucket)
 
 	_, err = u.client.PutObjectWithContext(ctx, fileUpload.Bucket, objectName, f, fileSize, minio.PutObjectOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while uploading file `%s` into `%s`", objectName, fileUpload.Bucket)
+		error := errors.Wrapf(err, "Error while uploading file `%s` into `%s`", objectName, fileUpload.Bucket)
+		glog.Error(error)
+		return nil, error
 	}
 
 	glog.Infof("Upload succeeded for `%s`.\n", objectName)
@@ -200,6 +205,11 @@ func (u *Uploader) populateErrors(errorsCh chan *UploadError) []UploadError {
 	}
 
 	return errs
+}
+
+// normalize object name. More info: https://github.com/minio/minio/issues/5874
+func (u *Uploader) normalizeObjectName(dir, fileName string) string {
+	return filepath.Clean(fmt.Sprintf("%s/%s", dir, fileName))
 }
 
 func Origin(uploadEndpoint string, secure bool) string {
