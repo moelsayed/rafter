@@ -1,0 +1,180 @@
+apiVersion: v1
+entries:
+  rafter:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2020-01-20T13:38:09.592422+01:00"
+    description: A umbrella Helm chart for Rafter Controller Manager and Rafter services
+    digest: bc8c71fbd1c3af882e77091aa5824a26d270e0f14d0bf3f904d0c6cd7ab8b967
+    home: https://github.com/kyma-project/rafter
+    keywords:
+    - rafter
+    - storage
+    - assets
+    - buckets
+    - assetgroups
+    - controller-manager
+    - webhook
+    - upload
+    - front-matter
+    - asyncapi
+    - minio
+    maintainers:
+    - email: lukasz.gornicki.83@gmail.com
+      name: derberg
+    - email: michal@hudy.pl
+      name: michal-hudy
+    - email: marcin.witalis@gmail.com
+      name: m00g3n
+    - email: mati6095@gmail.com
+      name: aerfio
+    - email: filip.strozik@outlook.com
+      name: pPrecel
+    - email: urbanczyk.maciej.95@gmail.com
+      name: magicmatatjahu
+    name: rafter
+    sources:
+    - https://github.com/kyma-project/rafter
+    urls:
+    - rafter-0.1.0.tgz
+    version: 0.1.0
+  rafter-asyncapi-service:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2020-01-20T13:38:09.593092+01:00"
+    description: A Helm chart for AsyncAPI Service
+    digest: 053e12e699dcf213f3378e7262daebd1915ca71d5b359a733f5a44b13e1e6e37
+    home: https://github.com/kyma-project/rafter
+    keywords:
+    - rafter
+    - storage
+    - assets
+    - buckets
+    - assetgroups
+    - asyncapi
+    - webhook
+    - minio
+    maintainers:
+    - email: lukasz.gornicki.83@gmail.com
+      name: derberg
+    - email: michal@hudy.pl
+      name: michal-hudy
+    - email: marcin.witalis@gmail.com
+      name: m00g3n
+    - email: mati6095@gmail.com
+      name: aerfio
+    - email: filip.strozik@outlook.com
+      name: pPrecel
+    - email: urbanczyk.maciej.95@gmail.com
+      name: magicmatatjahu
+    name: rafter-asyncapi-service
+    sources:
+    - https://github.com/kyma-project/rafter
+    urls:
+    - rafter-asyncapi-service-0.1.0.tgz
+    version: 0.1.0
+  rafter-controller-manager:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2020-01-20T13:38:09.595133+01:00"
+    description: A Helm chart for Rafter Controller Manager
+    digest: 7f1afddc0dc65c0b37c04887bdf954ba5466398df44669dc77a145239d61b004
+    home: https://github.com/kyma-project/rafter
+    keywords:
+    - rafter
+    - storage
+    - assets
+    - buckets
+    - assetgroups
+    - controller-manager
+    - minio
+    maintainers:
+    - email: lukasz.gornicki.83@gmail.com
+      name: derberg
+    - email: michal@hudy.pl
+      name: michal-hudy
+    - email: marcin.witalis@gmail.com
+      name: m00g3n
+    - email: mati6095@gmail.com
+      name: aerfio
+    - email: filip.strozik@outlook.com
+      name: pPrecel
+    - email: urbanczyk.maciej.95@gmail.com
+      name: magicmatatjahu
+    name: rafter-controller-manager
+    sources:
+    - https://github.com/kyma-project/rafter
+    urls:
+    - rafter-controller-manager-0.1.0.tgz
+    version: 0.1.0
+  rafter-front-matter-service:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2020-01-20T13:38:09.596041+01:00"
+    description: A Helm chart for Front Matter Service
+    digest: 1d148a21a747e09ab1459a2670fe998b99c17f92f922e4abdec2b5d9d1e78117
+    home: https://github.com/kyma-project/rafter
+    keywords:
+    - rafter
+    - storage
+    - assets
+    - buckets
+    - assetgroups
+    - front-matter
+    - webhook
+    - minio
+    maintainers:
+    - email: lukasz.gornicki.83@gmail.com
+      name: derberg
+    - email: michal@hudy.pl
+      name: michal-hudy
+    - email: marcin.witalis@gmail.com
+      name: m00g3n
+    - email: mati6095@gmail.com
+      name: aerfio
+    - email: filip.strozik@outlook.com
+      name: pPrecel
+    - email: urbanczyk.maciej.95@gmail.com
+      name: magicmatatjahu
+    name: rafter-front-matter-service
+    sources:
+    - https://github.com/kyma-project/rafter
+    urls:
+    - rafter-front-matter-service-0.1.0.tgz
+    version: 0.1.0
+  rafter-upload-service:
+  - apiVersion: v1
+    appVersion: 0.1.0
+    created: "2020-01-20T13:38:09.598079+01:00"
+    description: A Helm chart for Upload Service
+    digest: c624b87523edb72c01af1cca598239fa0625af1935d108fcc26ff8aef4e5f79c
+    home: https://github.com/kyma-project/rafter
+    keywords:
+    - rafter
+    - storage
+    - assets
+    - buckets
+    - assetgroups
+    - upload
+    - webhook
+    - minio
+    maintainers:
+    - email: lukasz.gornicki.83@gmail.com
+      name: derberg
+    - email: michal@hudy.pl
+      name: michal-hudy
+    - email: marcin.witalis@gmail.com
+      name: m00g3n
+    - email: mati6095@gmail.com
+      name: aerfio
+    - email: filip.strozik@outlook.com
+      name: pPrecel
+    - email: urbanczyk.maciej.95@gmail.com
+      name: magicmatatjahu
+    name: rafter-upload-service
+    sources:
+    - https://github.com/kyma-project/rafter
+    urls:
+    - rafter-upload-service-0.1.0.tgz
+    version: 0.1.0
+generated: "2020-01-20T13:38:09.586815+01:00"
