@@ -96,7 +96,8 @@ testHelpers::install_tiller() {
   helm init \
       --service-account tiller \
       --upgrade --wait  \
-      --history-max 200
+      --history-max 200 \
+      --stable-repo-url https://charts.helm.sh/stable
 
   log::success "- Tiller installed."
 }
@@ -135,7 +136,7 @@ testHelpers::install_ingress() {
 
   log::info '- Installing ingress...'
 
-  helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+  helm repo update 
 
   helm fetch stable/nginx-ingress --version ${ingress_version}
 
