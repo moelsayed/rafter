@@ -109,7 +109,8 @@ main() {
   junit::test_pass
 
   junit::test_start "Install_Tiller"
-  testHelpers::install_tiller 2>&1 | junit::test_output
+  testHelpers::install_tiller # 2>&1 | junit::test_output
+  kubectl get pods -A
   junit::test_pass
 
   junit::test_start "Prepare_Local_Helm_Charts"

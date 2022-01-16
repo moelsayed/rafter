@@ -98,7 +98,7 @@ testHelpers::install_tiller() {
       --upgrade --wait  \
       --history-max 200 \
       --stable-repo-url https://charts.helm.sh/stable
-
+  kubectl get pods -A
   log::success "- Tiller installed."
 }
 
