@@ -50,21 +50,22 @@ testHelpers::install_go_junit_report() {
 #   $1 - Helm version
 #   $2 - Host OS
 #   $3 - Destination directory
-testHelpers::download_helm_tiller() {
+testHelpers::download_helm() {
   local -r helm_version="${1}"
   local -r host_os="${2}"
   local -r destination_dir="${3}"
 
-  log::info "Downloading Helm and Tiller in version ${helm_version}..."
+  log::info "Downloading Helm in version ${helm_version}..."
 
   curl -LO "https://get.helm.sh/helm-${helm_version}-${host_os}-amd64.tar.gz" --fail \
       && tar -xzvf "helm-${helm_version}-${host_os}-amd64.tar.gz" \
       && mv "./${host_os}-amd64/helm" "${destination_dir}/helm" \
-      && mv "./${host_os}-amd64/tiller" "${destination_dir}/tiller" \
       && rm -rf "helm-${helm_version}-${host_os}-amd64.tar.gz" \
       && rm -rf "${host_os}-amd64"
+  
+  helm repo add stable https://charts.helm.sh/stable
 
-  log::success "- Helm & Tiller downloaded in ${helm_version} version."
+  log::success "- Helm downloaded in ${helm_version} version."
 }
 
 # Arguments:
@@ -85,22 +86,22 @@ testHelpers::download_kind() {
   log::success "- Kind downloaded."
 }
 
-testHelpers::install_tiller() {
-  log::info '- Installing Tiller...'
+# testHelpers::install_tiller() {
+#   log::info '- Installing Tiller...'
 
-  kubectl --namespace kube-system create sa tiller
-  kubectl create clusterrolebinding tiller-cluster-rule \
-      --clusterrole=cluster-admin \
-      --serviceaccount=kube-system:tiller \
+#   kubectl --namespace kube-system create sa tiller
+#   kubectl create clusterrolebinding tiller-cluster-rule \
+#       --clusterrole=cluster-admin \
+#       --serviceaccount=kube-system:tiller \
 
-  helm init \
-      --service-account tiller \
-      --upgrade --wait  \
-      --history-max 200 \
-      --stable-repo-url https://charts.helm.sh/stable
-  kubectl get pods -A
-  log::success "- Tiller installed."
-}
+#   helm init \
+#       --service-account tiller \
+#       --upgrade --wait  \
+#       --history-max 200 \
+#       --stable-repo-url https://charts.helm.sh/stable
+#   kubectl get pods -A
+#   log::success "- Tiller installed."
+# }
 
 # Arguments:
 #   $1 - Absolute path of repo
@@ -140,7 +141,7 @@ testHelpers::install_ingress() {
 
   helm fetch stable/nginx-ingress --version ${ingress_version}
 
-  helm install --name my-ingress stable/nginx-ingress --version ${ingress_version} \
+  helm install my-ingress stable/nginx-ingress --version ${ingress_version} \
       --set controller.service.type=NodePort \
       --set controller.service.nodePorts.http=${node_port_http} \
       --set controller.service.nodePorts.https=${node_port_https} \
@@ -180,11 +181,11 @@ testHelpers::install_rafter() {
 
   local -r tag="latest"
   local -r pull_policy="Never"
-  local -r timeout=180
+  local -r timeout=180s
 
   log::info "- Installing Rafter in ${release_name} release from local charts..."
 
-  helm install --name "${release_name}" "${charts_path}" \
+  helm install "${release_name}" "${charts_path}" \
     --set rafter-controller-manager.minio.existingSecret="${minio_secret_name}" \
     --set rafter-controller-manager.envs.store.externalEndpoint.value="${ingress_address}" \
     --set rafter-controller-manager.image.pullPolicy="${pull_policy}" \

@@ -89,8 +89,8 @@ main() {
   testHelpers::install_go_junit_report 2>&1 | junit::test_output
   junit::test_pass
 
-  junit::test_start "Install_Helm_Tiller"
-  testHelpers::download_helm_tiller "${STABLE_HELM_VERSION}" "${host_os}" "${TMP_BIN_DIR}" 2>&1 | junit::test_output
+  junit::test_start "Install_Helm"
+  testHelpers::download_helm "${STABLE_HELM_VERSION}" "${host_os}" "${TMP_BIN_DIR}" 2>&1 | junit::test_output
   junit::test_pass
 
   junit::test_start "Install_Kind"
@@ -108,10 +108,10 @@ main() {
     "${CLUSTER_CONFIG_FILE}" 2>&1 | junit::test_output
   junit::test_pass
 
-  junit::test_start "Install_Tiller"
-  testHelpers::install_tiller # 2>&1 | junit::test_output
-  kubectl get pods -A
-  junit::test_pass
+  # junit::test_start "Install_Tiller"
+  # testHelpers::install_tiller # 2>&1 | junit::test_output
+  # kubectl get pods -A
+  # junit::test_pass
 
   junit::test_start "Prepare_Local_Helm_Charts"
   testHelpers::prepare_local_helm_charts "${ROOT_REPO_PATH}" "${tmp_rafter_charts_dir}" 2>&1 | junit::test_output
