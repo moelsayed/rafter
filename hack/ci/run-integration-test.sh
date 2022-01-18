@@ -138,7 +138,8 @@ main() {
   # junit::test_pass
 
   junit::test_start "Deploy_kyma"
-  kyma deploy --component cluster-essentials --component "istio-configuration@istio-system" --component "certificates@istio-system" | junit::test_output
+  kubectl create namespace kyma-system
+  kyma deploy --component cluster-essentials --component "istio-configuration@istio-system" --component "certificates@istio-system" --component "rafter@kyma-system" | junit::test_output
   
   junit::test_pass
 
@@ -158,9 +159,9 @@ main() {
   testHelpers::create_k8s_secret "${minio_secret_name}" "${DEFAULT_MINIO_ACCESS_KEY}" "${DEFAULT_MINIO_SECRET_KEY}" 2>&1 | junit::test_output
   junit::test_pass
 
-  junit::test_start "Install_Rafter"
-  testHelpers::install_rafter "rafter" "${minio_secret_name}" "${INGRESS_ADDRESS}" "${tmp_rafter_charts_dir}" 2>&1 | junit::test_output
-  junit::test_pass 
+  # junit::test_start "Install_Rafter"
+  # testHelpers::install_rafter "rafter" "${minio_secret_name}" "${INGRESS_ADDRESS}" "${tmp_rafter_charts_dir}" 2>&1 | junit::test_output
+  # junit::test_pass 
 
   junit::test_start "Rafter_Integration_Test"
   testHelpers::run_integration_tests "${ROOT_REPO_PATH}" "${CLUSTER_NAME}" "${MINIO_ADDRESS}" "${UPLOAD_SERVICE_ENDPOINT}" "${minio_secret_name}" "${ARTIFACTS_DIR}" 2>&1 | junit::test_output
