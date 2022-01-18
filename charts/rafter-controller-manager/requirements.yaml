@@ -1,5 +1,5 @@
 dependencies:
   - name: minio
     version: 2.5.*
-    repository: https://charts.helm.sh/stable
+    repository: https://charts.min.io/
     condition: minio.enabled
