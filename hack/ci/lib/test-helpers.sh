@@ -184,7 +184,7 @@ testHelpers::install_rafter() {
   local -r timeout=180s
 
   log::info "- Installing Rafter in ${release_name} release from local charts..."
-
+  kubectl api-resources
   helm install "${release_name}" "${charts_path}" \
     --set rafter-controller-manager.minio.existingSecret="${minio_secret_name}" \
     --set rafter-controller-manager.envs.store.externalEndpoint.value="${ingress_address}" \

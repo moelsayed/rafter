@@ -180,12 +180,7 @@ rafter-upload-service:
     pullPolicy: IfNotPresent
 
   pod:
-    extraProperties:
-      strategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxUnavailable: 0
-
+    extraProperties: {}
   envs:
     verbose:
       value: "false"
@@ -252,11 +247,7 @@ rafter-front-matter-service:
     pullPolicy: IfNotPresent
 
   pod:
-    extraProperties:
-      strategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxUnavailable: 0
+    extraProperties: {}
 
   envs:
     verbose:
@@ -275,12 +266,7 @@ rafter-asyncapi-service:
     pullPolicy: IfNotPresent
 
   pod:
-    extraProperties:
-      strategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxUnavailable: 0
-
+    extraProperties: {}
   envs:
     verbose:
       value: "false"

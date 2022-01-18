@@ -37,6 +37,26 @@ init_environment() {
   docker::start
 }
 
+install::kyma_cli() {
+    local kyma_version
+    mkdir -p "/usr/local/bin"
+    os=$(host::os)
+
+    pushd "/usr/local/bin" || exit
+
+    echo "Install kyma CLI ${os} locally to /usr/local/bin..."
+
+    curl -sSLo kyma "https://storage.googleapis.com/kyma-cli-stable/kyma-${os}?alt=media"
+    chmod +x kyma
+    kyma_version=$(kyma version --client)
+    echo "Kyma CLI version: ${kyma_version}"
+
+    echo "OK"
+
+    popd || exit
+}
+
+
 finalize() {
   local -r exit_status=$?
   local finalization_failed="false"
@@ -101,6 +121,10 @@ main() {
   kubernetes::ensure_kubectl "${STABLE_KUBERNETES_VERSION}" "${host_os}" "${TMP_BIN_DIR}" 2>&1 | junit::test_output
   junit::test_pass
 
+  junit::test_start "Install_Kymacli"
+  install::kyma_cli 2>&1 | junit::test_output
+  junit::test_pass
+
   junit::test_start "Create_Kind_Cluster"
   kind::create_cluster \
     "${CLUSTER_NAME}" \
@@ -112,6 +136,11 @@ main() {
   # testHelpers::install_tiller # 2>&1 | junit::test_output
   # kubectl get pods -A
   # junit::test_pass
+
+  junit::test_start "Deploy_kyma"
+  kyma deploy --component cluster-essentials --component "istio-configuration@istio-system" --component "certificates@istio-system" | junit::test_output
+  
+  junit::test_pass
 
   junit::test_start "Prepare_Local_Helm_Charts"
   testHelpers::prepare_local_helm_charts "${ROOT_REPO_PATH}" "${tmp_rafter_charts_dir}" 2>&1 | junit::test_output

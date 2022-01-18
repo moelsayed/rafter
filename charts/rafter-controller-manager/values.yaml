@@ -20,7 +20,7 @@ image:
   tag: "6d342230"
   pullPolicy: IfNotPresent
 
-installCRDs: true
+installCRDs: false
 
 deployment:
   labels: {}
